@@ -1,142 +1,112 @@
-# ✂️ Text Chunking Utility — Day 13 (Phase 2: NLP & Text AI)
+<div align="center">
+  <img src="assets/hero.svg" alt="Sentence Similarity Vector Playground" width="100%">
+</div>
 
-Reads a **PDF**, extracts its text, and splits it into **smart, overlapping,
-metadata-rich chunks** — the foundation of a **RAG (Retrieval-Augmented Generation)**
-pipeline. The web app runs the whole flow end to end.
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/Python-3.10+-1B1830?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Flask-Web_Framework-FF3E88?style=for-the-badge&logo=flask&logoColor=white" alt="Flask"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Sentence_Transformers-all--MiniLM-FFD93D?style=for-the-badge&logoColor=1B1830" alt="Sentence Transformers"></a>
+  <a href="#"><img src="https://img.shields.io/badge/GSAP-Animations-1B1830?style=for-the-badge&logo=greensock&logoColor=white" alt="GSAP"></a>
+  <a href="#"><img src="https://img.shields.io/badge/scikit--learn-Metrics-FF3E88?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="Sklearn"></a>
+</p>
 
-> 🔗 **Continues Day 12:** this tool reads the exact JSON produced by the Day 12
-> PDF Extractor. Pipeline so far: **PDF → extract text (Day 12) → chunk (Day 13)**
-> → *embed → vector DB → retrieve (coming next)*.
+<div align="center">
+  <a href="http://127.0.0.1:5002">
+    <img src="https://img.shields.io/badge/✨_Launch_Live_Demo-FFD93D?style=for-the-badge&logoColor=1B1830" alt="Live Demo">
+  </a>
+</div>
 
-## 🎯 Why Chunk?
+<br>
 
-Large documents can't be fed to an LLM whole:
-- **Context window** — LLMs accept a limited number of tokens.
-- **Embedding quality** — embedding models work best on short, focused passages.
-- **Retrieval precision** — one idea per chunk = more relevant search results.
+## 🌌 Overview
 
-## 🧩 Chunking Strategies
+**Vector Playground** is a sleek, interactive web application that visualizes semantic sentence similarity. By converting text into high-dimensional vectors (embeddings) and projecting them down to 2D space, it allows you to literally *see* the meaning of sentences.
 
-| Strategy | How it splits | Overlap | Best for |
-|----------|---------------|---------|----------|
-| `sentence` | Packs whole sentences up to `chunk_size` chars | ✅ yes | General RAG (default) |
-| `paragraph` | One chunk per paragraph (blank-line separated) | ❌ n/a | Well-structured docs |
+- **Dynamic Visualizations:** Watch sentences map out and connect in real-time.
+- **Top Matches:** Automatically computes pairwise cosine similarity and highlights the strongest matches.
+- **Modern UI:** Built with premium typography, fluid liquid cursor, micro-interactions, and beautiful GSAP animations.
+- **Fast & Lightweight:** Relies purely on Flask and `all-MiniLM-L6-v2` under the hood. No heavy database dependencies.
 
-### 🔁 Chunk Overlap
+---
 
-Overlap repeats a little text between neighbouring chunks so meaning isn't lost at
-the boundary. Example (`--overlap 60`):
+## 🧠 Concepts Explained
 
+This project serves as an interactive playground to understand the foundational concepts of modern Natural Language Processing (NLP) and Retrieval-Augmented Generation (RAG).
+
+### 1. What are Embeddings?
+An **embedding** is a way to represent text as a dense list of numbers (a vector). Instead of just looking at the exact characters in a string, models like `all-MiniLM-L6-v2` analyze the context and *meaning* of the text. For example, "kitten" and "cat" are spelled differently but have very similar meanings, so their numerical embeddings will look nearly identical. In this app, every sentence is compressed into a **384-dimensional vector**.
+
+### 2. The Vector Space
+Imagine a 3D space with an X, Y, and Z axis. Now imagine a space with **384 axes**. That is the **Vector Space** where our sentences live. Sentences with similar semantic meanings cluster closely together in this space, while unrelated sentences are pushed far apart. 
+Because humans can't visualize 384 dimensions, this application uses a mathematical technique called **PCA (Principal Component Analysis)** via SVD to squash those 384 dimensions down to just 2 dimensions (X and Y) so we can plot them on your screen.
+
+### 3. Cosine Similarity
+How do we know if two sentences are similar? We measure the angle between their vectors in the vector space. **Cosine Similarity** is a metric ranging from `-1` (completely opposite) to `1` (exactly identical). 
+- If two vectors point in the exact same direction, the angle is 0°, and the cosine similarity is `1.0`.
+- If they are unrelated, the angle is 90°, and the similarity is `0.0`.
+The app calculates this score for every possible pair of sentences to find the "Top Matches" and draw the connecting dotted lines.
+
+### 4. How the Application Works
+1. **Input:** You type a list of sentences into the sleek web interface.
+2. **Encoding:** The Flask API sends these sentences to the `Sentence-Transformers` model, which converts each sentence into its 384-dimensional embedding.
+3. **Scoring:** The backend calculates the Cosine Similarity between every single pair of embeddings to find out which sentences mean the same thing.
+4. **Projection:** Using Singular Value Decomposition (SVD), the 384-dimensional coordinates are flattened into 2D coordinates.
+5. **Visualization:** The browser receives the coordinates and similarity scores, and uses GSAP to smoothly animate the nodes into their vector positions on the 2D map.
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    classDef ui fill:#FF3E88,stroke:#1B1830,stroke-width:2px,color:#FFFFFF,font-family:monospace
+    classDef api fill:#1B1830,stroke:#E3DFF5,stroke-width:2px,color:#FFFFFF,font-family:monospace
+    classDef ml fill:#FFD93D,stroke:#1B1830,stroke-width:2px,color:#1B1830,font-family:monospace
+
+    UI([🌐 Web Frontend]):::ui
+    API[⚙️ Flask API]:::api
+    Model((🧠 Sentence-Transformers)):::ml
+    Math[🧮 SVD / PCA Projection]:::api
+
+    UI -- "POST /analyze" --> API
+    API -- "Sentences" --> Model
+    Model -- "384-D Embeddings" --> Math
+    Math -- "Cosine Similarity & 2D Coords" --> API
+    API -- "JSON Results" --> UI
+    
+    UI -. "Render Map (GSAP)" .-> UI
 ```
-Chunk 0: "... As a result, RAG systems hallucinate far less than a plain LLM."
-Chunk 1: "As a result, RAG systems hallucinate far less than a plain LLM. The first step ..."
-          └────────────────── shared overlap ──────────────────┘
-```
 
-The sentence strategy always keeps **at least one** trailing sentence, so overlap is
-guaranteed even when a single sentence is longer than the overlap size.
-A typical overlap is **10–20%** of the chunk size.
+---
 
-## 🏷️ Metadata Structure
+## 🚀 How to Run Locally
 
-Every chunk is stored as a record:
-
-```json
-{
-  "chunk_id": "quarterly_report_p1_c0",
-  "text": "Retrieval-Augmented Generation, or RAG, is a technique ...",
-  "metadata": {
-    "source_file": "quarterly_report.pdf",
-    "page_number": 1,
-    "chunk_index": 0,
-    "strategy": "sentence",
-    "char_count": 274,
-    "word_count": 41
-  }
-}
-```
-
-- `chunk_id` — human-readable unique ID: `<file>_p<page>_c<index-on-page>`
-- `page_number` — traces the chunk back to its source page (used for citations later)
-- `chunk_index` — running position across the whole document
-
-## 🖥️ Web UI — full pipeline in one app
-
-Upload a PDF and the app does everything:
-
-```
-PDF  →  extract text (extractor.py)  →  chunk + overlap (chunker.py)  →  JSON
-```
-
+### 1. Install Dependencies
+Make sure you have Python 3.10+ installed.
 ```bash
-pip install -r requirements.txt      # flask + pdfplumber + pypdf
-python make_sample_pdf.py            # optional: creates sample_data/sample.pdf
-python app.py                        # open http://127.0.0.1:5000
+pip install flask sentence-transformers scikit-learn numpy
 ```
 
-- 📄 **Drop a PDF** (or paste raw text) — text is extracted **server-side**
-- 🎛️ Choose strategy, chunk size &amp; overlap
-- 🟩 Each chunk shows page number, IDs, counts; the **overlap** shared with the
-  previous chunk is highlighted in the accent colour
-- ↓ **Download** the chunks as JSON
-
-Dark-studio interface, monospace labels, one electric accent. The app reuses the
-**same** `extract_document()` and `chunk_document()` functions the modules expose —
-extraction and chunking each live in one place.
-
-## 🚀 How to Run
-
+### 2. Start the Flask Server
 ```bash
-# default: sentence strategy, 400-char chunks, 80-char overlap
-python chunker.py sample_data/extracted_pdf.json
-
-# custom size / overlap
-python chunker.py sample_data/extracted_pdf.json --strategy sentence --chunk-size 300 --overlap 60
-
-# paragraph strategy
-python chunker.py sample_data/extracted_pdf.json --strategy paragraph
+python app.py
 ```
+*Note: On first run, it will automatically download the `all-MiniLM-L6-v2` model.*
 
-Output is written to `output/<input-name>_chunks.json`.
+### 3. Open the Playground
+Navigate to the URL provided in your terminal (usually [http://127.0.0.1:5002](http://127.0.0.1:5002)) and start exploring!
 
-## 📦 Output Shape
+---
 
-```json
-{
-  "source_document": "quarterly_report.pdf",
-  "chunking_config": { "strategy": "sentence", "chunk_size": 300, "overlap": 60 },
-  "total_chunks": 7,
-  "chunks": [ /* chunk records (see above) */ ]
-}
-```
+## 🎨 Design System
 
-## 📁 Project Structure
+This project embraces a modern, playful, yet premium design language:
 
-```
-day13_text_chunker/
-├── chunker.py                    # chunking engine (sentence/paragraph, overlap, metadata)
-├── extractor.py                  # PDF -> text (pdfplumber + pypdf)
-├── app.py                        # Flask app: PDF -> extract -> chunk -> JSON
-├── make_sample_pdf.py            # generates a 2-page test PDF
-├── templates/
-│   └── index.html                # dark-studio UI (PDF upload)
-├── sample_data/
-│   ├── sample.pdf                # test PDF
-│   └── extracted_pdf.json        # sample Day-12 JSON (for the CLI)
-├── output/                       # generated chunk files
-├── requirements.txt
-└── README.md
-```
+- **Typefaces:** `Bricolage Grotesque` for bold impact, `Plus Jakarta Sans` for clean reading, and `Fragment Mono` for technical data.
+- **Interactions:** A custom "liquid" cursor that morphs based on velocity, floating vector nodes, and dynamically drawing SVG curves.
+- **Palette:** A harmony of deep ink (`#1B1830`), vibrant pink (`#FF3E88`), and electric yellow (`#FFD93D`) set against a soft violet background (`#F3F1FF`).
 
-## 🔗 What's Next in RAG
-
-Each chunk's `text` gets converted into an **embedding** (a vector), stored in a
-**vector database**, and later **retrieved** by semantic similarity to answer questions.
-That's the next phase of the internship. 🚀
-
-## 📝 Note on LangChain
-
-The learning resource is LangChain's `RecursiveCharacterTextSplitter`. This project
-implements the same ideas (size limit, overlap, metadata) from scratch with the
-**standard library only**, so every line is understandable and there are no
-dependencies to install.
+<div align="center">
+  <br>
+  <sub>Built with ❤️ for Day 14 NLP & Text AI Internship</sub>
+</div>
