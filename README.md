@@ -11,7 +11,7 @@
 </p>
 
 <div align="center">
-  <a href="http://127.0.0.1:5002">
+  <a href="https://semantix-fvtx.onrender.com/">
     <img src="https://img.shields.io/badge/✨_Launch_Live_Demo-FFD93D?style=for-the-badge&logoColor=1B1830" alt="Live Demo">
   </a>
 </div>
