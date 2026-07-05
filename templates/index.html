@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentence Similarity — Vector Playground</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fragment+Mono&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #F3F1FF;
+      --card: #FFFFFF;
+      --ink: #1B1830;
+      --muted: #6E6A85;
+      --line: #E3DFF5;
+      --pink: #FF3E88;
+      --pink-lt: #FFE3EE;
+      --yellow: #FFD93D;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      cursor: none;
+      overflow-x: hidden;
+    }
+
+    a,
+    button,
+    input {
+      cursor: none;
+    }
+
+    ::selection {
+      background: var(--pink);
+      color: white;
+    }
+
+    @media (max-width: 700px) {
+
+      body,
+      a,
+      button,
+      input {
+        cursor: auto;
+      }
+
+      .cursor-blob {
+        display: none;
+      }
+    }
+
+    /* ═══ LIQUID CUSTOM CURSOR ═══ */
+    .cursor-blob {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--pink);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: normal;
+      transition: width 0.25s, height 0.25s, background 0.25s;
+    }
+
+    .cursor-blob.hover {
+      width: 64px;
+      height: 64px;
+      background: var(--yellow);
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 2.2rem;
+    }
+
+    /* ═══ TOP BAR ═══ */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.7rem 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--card);
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 0.5rem 1.1rem;
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge .dot {
+      width: 7px;
+      height: 7px;
+      background: var(--pink);
+      border-radius: 50%;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.7);
+      }
+    }
+
+    .badge--dim {
+      color: var(--muted);
+      border-color: var(--line);
+      background: transparent;
+    }
+
+    /* ═══ HERO ═══ */
+    .hero {
+      padding: 3rem 0 3.5rem;
+    }
+
+    .hero__title {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: clamp(2.6rem, 7vw, 5rem);
+      line-height: 1.02;
+      letter-spacing: -0.02em;
+    }
+
+    .hero__title .word {
+      display: inline-block;
+    }
+
+    .hero__title .highlight {
+      position: relative;
+      color: var(--pink);
+      display: inline-block;
+    }
+
+    .hero__title .highlight svg {
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 12px;
+      overflow: visible;
+    }
+
+    .hero__desc {
+      max-width: 540px;
+      margin-top: 1.6rem;
+      color: var(--muted);
+      font-size: 1.06rem;
+      line-height: 1.7;
+      opacity: 0;
+    }
+
+    .hero__desc strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* ═══ SECTIONS ═══ */
+    .section {
+      padding: 3rem 0;
+    }
+
+    .section__head {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin-bottom: 1.8rem;
+    }
+
+    .section__badge {
+      background: var(--ink);
+      color: var(--bg);
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+    }
+
+    .section__title {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 1.65rem;
+    }
+
+    /* ═══ INPUT CARD ═══ */
+    .input-card {
+      background: var(--card);
+      border: 2px solid var(--ink);
+      border-radius: 28px;
+      padding: 1.8rem;
+    }
+
+    .sentence-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .sentence-row {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    .sentence-row__num {
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--bg);
+      border-radius: 999px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sentence-input {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.96rem;
+      color: var(--ink);
+      padding: 0.9rem 1.2rem;
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+
+    .sentence-input:focus {
+      border-color: var(--pink);
+      transform: scale(1.01);
+    }
+
+    .sentence-input::placeholder {
+      color: #ADA8C4;
+    }
+
+    .remove-btn {
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 50%;
+      font-family: 'Fragment Mono', monospace;
+      font-size: 1rem;
+      transition: border-color 0.2s, color 0.2s, transform 0.2s;
+    }
+
+    .remove-btn:hover {
+      border-color: var(--pink);
+      color: var(--pink);
+      transform: rotate(90deg);
+    }
+
+    .action-row {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      margin-top: 1.2rem;
+    }
+
+    .btn {
+      position: relative;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 600;
+      font-size: 0.92rem;
+      padding: 0.9rem 1.7rem;
+      border: 2px solid var(--ink);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 999px;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: var(--yellow);
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: -1;
+    }
+
+    .btn:hover::before {
+      transform: translate(-50%, -50%) scale(9);
+    }
+
+    .btn--primary {
+      background: var(--pink);
+      color: white;
+      border-color: var(--pink);
+    }
+
+    .btn--primary::before {
+      background: var(--ink);
+    }
+
+    .btn--primary:hover {
+      color: white;
+    }
+
+    .btn--primary:disabled {
+      opacity: 0.4;
+    }
+
+    .error-text {
+      display: none;
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.8rem;
+      color: #E0245E;
+      margin-top: 1rem;
+    }
+
+    .error-text.active {
+      display: block;
+    }
+
+    /* ═══ LOADER ═══ */
+    .loader-row {
+      display: none;
+      align-items: center;
+      gap: 1rem;
+      padding: 2.2rem 0;
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .loader-row.active {
+      display: flex;
+    }
+
+    .loader-dots {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .loader-dots span {
+      width: 9px;
+      height: 9px;
+      background: var(--pink);
+      border-radius: 50%;
+      animation: bounce 0.7s ease-in-out infinite;
+    }
+
+    .loader-dots span:nth-child(2) {
+      animation-delay: 0.12s;
+    }
+
+    .loader-dots span:nth-child(3) {
+      animation-delay: 0.24s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    /* ═══ RESULTS ═══ */
+    #results {
+      display: none;
+    }
+
+    #results.active {
+      display: block;
+    }
+
+    .plot-card {
+      background: var(--card);
+      border: 2px solid var(--ink);
+      border-radius: 28px;
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+
+    .plot-card__label {
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      padding: 1.1rem 1.6rem;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .plot-card__label .pink-tag {
+      color: var(--pink);
+      font-weight: 600;
+    }
+
+    #vector-plot {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .plot-node circle.core {
+      fill: var(--card);
+      stroke: var(--ink);
+      stroke-width: 2;
+    }
+
+    .plot-node text {
+      font-family: 'Fragment Mono', monospace;
+      font-size: 10px;
+      fill: var(--ink);
+    }
+
+    .plot-node.dimmed {
+      opacity: 0.2;
+    }
+
+    .plot-node.active circle.core {
+      fill: var(--pink);
+      stroke: var(--pink);
+    }
+
+    .plot-node.active text {
+      fill: white;
+    }
+
+    .plot-line {
+      stroke: var(--muted);
+      fill: none;
+      opacity: 0.35;
+      transition: opacity 0.2s, stroke-width 0.2s;
+    }
+
+    .plot-line--top {
+      stroke: var(--pink);
+      opacity: 1;
+      stroke-dasharray: 8 6;
+    }
+
+    .plot-line.dimmed {
+      opacity: 0.04;
+    }
+
+    .plot-line.emphasized {
+      opacity: 1;
+      stroke-width: 3.5;
+    }
+
+    .tooltip-box {
+      position: fixed;
+      background: var(--ink);
+      color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.82rem;
+      padding: 0.65rem 1.05rem;
+      max-width: 260px;
+      border-radius: 14px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.15s, transform 0.15s;
+      z-index: 20;
+    }
+
+    .tooltip-box.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Top Pairs */
+    .top-pairs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .pair-row {
+      display: grid;
+      grid-template-columns: 56px 1fr 90px;
+      gap: 1.2rem;
+      align-items: center;
+      padding: 1.1rem 1.4rem;
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .pair-row:hover {
+      border-color: var(--pink);
+      transform: translateX(4px);
+    }
+
+    .pair-row:first-child {
+      border-color: var(--ink);
+      background: var(--pink-lt);
+    }
+
+    .pair-row__rank {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 1.9rem;
+      color: #C9C4E0;
+    }
+
+    .pair-row:first-child .pair-row__rank {
+      color: var(--pink);
+    }
+
+    .pair-row__sentences {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .pair-row__sentence {
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .pair-row__sentence.a {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .pair-row__sentence.b {
+      color: var(--muted);
+    }
+
+    .pair-row__score {
+      font-family: 'Fragment Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .pair-row:first-child .pair-row__score {
+      color: var(--pink);
+    }
+
+    /* Matrix */
+    .matrix-wrap {
+      overflow-x: auto;
+      border-radius: 20px;
+      border: 2px solid var(--ink);
+    }
+
+    .matrix-table {
+      border-collapse: collapse;
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.68rem;
+      width: 100%;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 0.55rem 0.65rem;
+      text-align: center;
+      min-width: 40px;
+      border: 1px solid var(--line);
+    }
+
+    .matrix-table th {
+      background: var(--ink);
+      color: white;
+      font-weight: 500;
+    }
+
+    .footer {
+      padding: 2.2rem 0 3.5rem;
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Fragment Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 700px) {
+      .wrap {
+        padding: 0 1.3rem;
+      }
+
+      .pair-row {
+        grid-template-columns: 36px 1fr;
+        border-radius: 16px;
+      }
+
+      .pair-row__score {
+        grid-column: 2;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="cursor-blob" id="cursor-blob"></div>
+
+  <div class="wrap">
+
+    <div class="top-bar">
+      <span class="badge"><span class="dot"></span>Made by Atharva</span>
+      <span class="badge badge--dim">all-MiniLM-L6-v2</span>
+    </div>
+
+    <header class="hero">
+      <h1 class="hero__title">
+        <span class="word">Meaning,</span>
+        <span class="word">mapped</span>
+        <span class="word">as</span>
+        <span class="word highlight">vectors
+          <svg viewBox="0 0 100 12" preserveAspectRatio="none">
+            <path d="M2 8 Q 25 2, 50 8 T 98 8" stroke="#FFD93D" stroke-width="5" fill="none" stroke-linecap="round" />
+          </svg>
+        </span><br>
+        <span class="word">you</span>
+        <span class="word">can</span>
+        <span class="word">actually</span>
+        <span class="word">see.</span>
+      </h1>
+      <p class="hero__desc">
+        Each sentence becomes a <strong>384-dimensional embedding</strong>.
+        Drag them into the light below and watch which ones cluster together —
+        distance here means semantic closeness, not shared words.
+      </p>
+    </header>
+
+    <!-- 01 — INPUT -->
+    <section class="section">
+      <div class="section__head">
+        <span class="section__badge">01</span>
+        <h2 class="section__title">Your Sentences</h2>
+      </div>
+
+      <div class="input-card">
+        <div class="sentence-list" id="sentence-list"></div>
+
+        <div class="action-row">
+          <button class="btn hoverable" onclick="addSentence()">+ Add Sentence</button>
+          <button class="btn hoverable" onclick="loadDefault()">Load Example Set</button>
+          <button class="btn btn--primary hoverable" id="analyze-btn" onclick="runAnalysis()">Compute Embeddings
+            →</button>
+        </div>
+
+        <p class="error-text" id="error-text"></p>
+      </div>
+    </section>
+
+    <div class="loader-row" id="loader-row">
+      <div class="loader-dots"><span></span><span></span><span></span></div>
+      <span>Mapping sentences into vector space…</span>
+    </div>
+
+    <!-- 02 — RESULTS -->
+    <section class="section" id="results" style="display:none;">
+      <div class="section__head">
+        <span class="section__badge">02</span>
+        <h2 class="section__title">Vector Space Map</h2>
+      </div>
+
+      <div class="plot-card">
+        <div class="plot-card__label">
+          <span>2D PROJECTION (PCA) — HOVER A NODE</span>
+          <span class="pink-tag">● TOP MATCH</span>
+        </div>
+        <svg id="vector-plot" viewBox="0 0 640 440"></svg>
+      </div>
+
+      <div class="section__head">
+        <span class="section__badge">03</span>
+        <h2 class="section__title">Closest Pairs</h2>
+      </div>
+      <div class="top-pairs" id="top-pairs"></div>
+
+      <div class="section__head">
+        <span class="section__badge">04</span>
+        <h2 class="section__title">Similarity Matrix</h2>
+      </div>
+      <div class="matrix-wrap">
+        <table class="matrix-table" id="matrix-table"></table>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>Free to use tool</span>
+      <span>Flask + sentence-transformers + GSAP</span>
+    </footer>
+
+  </div>
+
+  <div class="tooltip-box" id="tooltip"></div>
+
+  <script>
+    // ── Liquid Custom Cursor (velocity-based stretch) ─────────────
+    const blob = document.getElementById('cursor-blob');
+    let mouseX = 0, mouseY = 0, curX = 0, curY = 0;
+    let lastX = 0, lastY = 0;
+
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX; mouseY = e.clientY;
+    });
+
+    gsap.ticker.add(() => {
+      const dx = mouseX - curX;
+      const dy = mouseY - curY;
+      curX += dx * 0.18;
+      curY += dy * 0.18;
+
+      const vx = curX - lastX;
+      const vy = curY - lastY;
+      const speed = Math.min(Math.sqrt(vx * vx + vy * vy), 40);
+      const angle = Math.atan2(vy, vx) * (180 / Math.PI);
+      const stretch = 1 + speed / 40;
+
+      gsap.set(blob, {
+        x: curX, y: curY,
+        rotation: angle,
+        scaleX: stretch,
+        scaleY: 1 / Math.sqrt(stretch),
+      });
+
+      lastX = curX; lastY = curY;
+    });
+
+    function refreshHoverables() {
+      document.querySelectorAll('.hoverable, .plot-node, .sentence-input, .remove-btn').forEach(el => {
+        el.removeEventListener('mouseenter', addHoverClass);
+        el.removeEventListener('mouseleave', removeHoverClass);
+        el.addEventListener('mouseenter', addHoverClass);
+        el.addEventListener('mouseleave', removeHoverClass);
+      });
+    }
+    function addHoverClass() { blob.classList.add('hover'); }
+    function removeHoverClass() { blob.classList.remove('hover'); }
+
+    // ── Sentence Rows ──────────────────────────────────────────────
+    let sentenceCount = 0;
+
+    function createSentenceRow(value = '') {
+      sentenceCount++;
+      const list = document.getElementById('sentence-list');
+      const row = document.createElement('div');
+      row.className = 'sentence-row';
+      row.innerHTML = `
+    <span class="sentence-row__num">${String(sentenceCount).padStart(2, '0')}</span>
+    <input type="text" class="sentence-input" value="${value.replace(/"/g, '&quot;')}" placeholder="Type a sentence..." />
+    <button class="remove-btn" onclick="removeSentence(this)">×</button>
+  `;
+      list.appendChild(row);
+      renumber();
+      refreshHoverables();
+    }
+
+    function addSentence() { createSentenceRow(); }
+
+    function removeSentence(btn) {
+      const row = btn.closest('.sentence-row');
+      gsap.to(row, { opacity: 0, x: -16, duration: 0.2, onComplete: () => { row.remove(); renumber(); } });
+    }
+
+    function renumber() {
+      document.querySelectorAll('.sentence-row').forEach((row, i) => {
+        row.querySelector('.sentence-row__num').textContent = String(i + 1).padStart(2, '0');
+      });
+    }
+
+    function getSentences() {
+      return Array.from(document.querySelectorAll('.sentence-input'))
+        .map(i => i.value.trim())
+        .filter(v => v);
+    }
+
+    async function loadDefault() {
+      const res = await fetch('/default');
+      const data = await res.json();
+      document.getElementById('sentence-list').innerHTML = '';
+      sentenceCount = 0;
+      data.sentences.forEach(s => createSentenceRow(s));
+      gsap.from('.sentence-row', { opacity: 0, y: 8, duration: 0.35, stagger: 0.04, ease: 'power1.out' });
+    }
+
+    async function runAnalysis() {
+      const sentences = getSentences();
+      const errorEl = document.getElementById('error-text');
+      const loader = document.getElementById('loader-row');
+      const results = document.getElementById('results');
+      const btn = document.getElementById('analyze-btn');
+
+      errorEl.classList.remove('active');
+
+      if (sentences.length < 3) {
+        errorEl.textContent = '— Add at least 3 sentences first.';
+        errorEl.classList.add('active');
+        return;
+      }
+
+      btn.disabled = true;
+      loader.classList.add('active');
+      results.style.display = 'none';
+
+      try {
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sentences }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Analysis failed.');
+
+        renderResults(data);
+        results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch (err) {
+        errorEl.textContent = '— ' + err.message;
+        errorEl.classList.add('active');
+      } finally {
+        loader.classList.remove('active');
+        btn.disabled = false;
+      }
+    }
+
+    function renderResults(data) {
+      renderPlot(data);
+      renderTopPairs(data.top_pairs);
+      renderMatrix(data.sentences, data.matrix);
+    }
+
+    // ── Vector Plot (curved flowing lines) ────────────────────────
+    function renderPlot(data) {
+      const svg = document.getElementById('vector-plot');
+      const W = 640, H = 440, PAD = 46;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      const coords = data.coords.map(c => ({
+        x: PAD + (c.x / 100) * (W - PAD * 2),
+        y: PAD + (c.y / 100) * (H - PAD * 2),
+      }));
+
+      const topPairKeys = new Set(data.top_pairs.map(p => `${p.i}-${p.j}`));
+
+      const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const lineElements = [];
+      data.pairs.forEach(p => {
+        if (p.score < 0.3) return;
+        const a = coords[p.i], b = coords[p.j];
+        const isTop = topPairKeys.has(`${p.i}-${p.j}`);
+        const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2 - 18;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${a.x} ${a.y} Q ${a.x} ${a.y} ${a.x} ${a.y}`);
+        path.setAttribute('class', isTop ? 'plot-line plot-line--top' : 'plot-line');
+
+        let strokeW = Math.max(1.0, p.score * 4.0);
+        if (isTop) strokeW += 2.0; // Thicker line for top matches
+        path.setAttribute('stroke-width', strokeW);
+
+        path.dataset.i = p.i; path.dataset.j = p.j;
+        path.dataset.ax = a.x; path.dataset.ay = a.y;
+        path.dataset.bx = b.x; path.dataset.by = b.y;
+        path.dataset.isTop = isTop;
+        linesGroup.appendChild(path);
+        lineElements.push(path);
+      });
+      svg.appendChild(linesGroup);
+
+      const nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const nodeElements = [];
+      coords.forEach((c, i) => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'plot-node hoverable');
+        g.setAttribute('transform', `translate(${c.x}, ${c.y}) scale(0)`);
+
+        const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        core.setAttribute('class', 'core');
+        core.setAttribute('r', 15);
+        g.appendChild(core);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dy', 3);
+        text.textContent = i + 1;
+        g.appendChild(text);
+
+        g.addEventListener('mouseenter', (e) => onNodeHover(i, lineElements, nodeElements, data, e));
+        g.addEventListener('mousemove', (e) => moveTooltip(e));
+        g.addEventListener('mouseleave', () => clearHover(lineElements, nodeElements));
+
+        nodesGroup.appendChild(g);
+        nodeElements.push(g);
+
+        // idle float animation removed per user request
+      });
+      svg.appendChild(nodesGroup);
+
+      refreshHoverables();
+
+      // Animate curve growth
+      lineElements.forEach((path, idx) => {
+        gsap.to({}, {
+          duration: 0.9,
+          delay: 0.3 + idx * 0.012,
+          ease: 'power2.out',
+          onUpdate: function () {
+            const t = this.progress();
+            const ax = +path.dataset.ax, ay = +path.dataset.ay;
+            const bx = ax + (+path.dataset.bx - ax) * t;
+            const by = ay + (+path.dataset.by - ay) * t;
+
+            const dx = bx - ax, dy = by - ay;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const isTop = path.dataset.isTop === 'true';
+            // Dynamic arc: bow more if points are close so line isn't hidden behind circles
+            let arc = 35 + (dist < 80 ? 30 : 0);
+            if (isTop) arc += 15; // Top pair bows out slightly more to be clearly visible
+
+            const mx = (ax + bx) / 2, my = (ay + by) / 2 - arc * t;
+            path.setAttribute('d', `M ${ax} ${ay} Q ${mx} ${my} ${bx} ${by}`);
+          },
+        });
+      });
+
+      gsap.to(nodeElements, { scale: 1, duration: 0.6, ease: 'back.out(2.2)', stagger: 0.06, delay: 0.15 });
+    }
+
+    function onNodeHover(index, lines, nodes, data, e) {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.textContent = data.sentences[index];
+      tooltip.classList.add('visible');
+      moveTooltip(e);
+
+      nodes.forEach((n, i) => {
+        n.classList.toggle('dimmed', i !== index);
+        n.classList.toggle('active', i === index);
+      });
+      lines.forEach(l => {
+        const isConnected = (+l.dataset.i === index || +l.dataset.j === index);
+        l.classList.toggle('dimmed', !isConnected);
+        l.classList.toggle('emphasized', isConnected);
+      });
+    }
+
+    function moveTooltip(e) {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.style.left = (e.clientX + 18) + 'px';
+      tooltip.style.top = (e.clientY + 18) + 'px';
+    }
+
+    function clearHover(lines, nodes) {
+      document.getElementById('tooltip').classList.remove('visible');
+      nodes.forEach(n => { n.classList.remove('dimmed'); n.classList.remove('active'); });
+      lines.forEach(l => { l.classList.remove('dimmed'); l.classList.remove('emphasized'); });
+    }
+
+    // ── Top Pairs ──────────────────────────────────────────────────
+    function renderTopPairs(pairs) {
+      const container = document.getElementById('top-pairs');
+      container.innerHTML = pairs.map((p, i) => `
+    <div class="pair-row">
+      <div class="pair-row__rank">${String(i + 1).padStart(2, '0')}</div>
+      <div class="pair-row__sentences">
+        <div class="pair-row__sentence a">${p.sentence_a}</div>
+        <div class="pair-row__sentence b">${p.sentence_b}</div>
+      </div>
+      <div class="pair-row__score">${p.score.toFixed(3)}</div>
+    </div>
+  `).join('');
+      gsap.from('.pair-row', { opacity: 0, y: 14, duration: 0.45, stagger: 0.09, ease: 'power1.out' });
+    }
+
+    // ── Matrix ───────────────────────────────────────────────────
+    function renderMatrix(sentences, matrix) {
+      const table = document.getElementById('matrix-table');
+      const n = sentences.length;
+      let html = '<tr><th></th>' + sentences.map((_, i) => `<th>${i + 1}</th>`).join('') + '</tr>';
+      for (let i = 0; i < n; i++) {
+        html += `<tr><th>${i + 1}</th>`;
+        for (let j = 0; j < n; j++) {
+          const score = matrix[i][j];
+          const intensity = i === j ? 0 : score;
+          const bg = `rgba(255,62,136,${intensity * 0.32})`;
+          html += `<td style="background:${bg};" title="${sentences[i]} ↔ ${sentences[j]}">${score.toFixed(2)}</td>`;
+        }
+        html += '</tr>';
+      }
+      table.innerHTML = html;
+    }
+
+    // ── Page Load ─────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      gsap.from('.badge', { opacity: 0, y: -10, duration: 0.5, stagger: 0.1 });
+      gsap.from('.hero__title .word', {
+        opacity: 0, y: 30, rotate: -3, duration: 0.6, stagger: 0.06, ease: 'back.out(1.7)', delay: 0.1,
+      });
+      gsap.to('.hero__desc', { opacity: 1, duration: 0.7, delay: 0.6 });
+
+      refreshHoverables();
+
+      // Initialize with 3 empty sentence rows since at least 3 are required for analysis
+      createSentenceRow();
+      createSentenceRow();
+      createSentenceRow();
+    });
+  </script>
+
+</body>
+
+</html>
