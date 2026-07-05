@@ -5,9 +5,18 @@ import numpy as np
 
 app = Flask(__name__)
 
-print("Loading sentence-transformers model (all-MiniLM-L6-v2)...")
-model = SentenceTransformer("all-MiniLM-L6-v2")
-print("Model loaded.")
+model = None
+
+def get_model():
+    global model
+    if model is None:
+        import torch
+        # Restrict PyTorch to a single thread to save memory on free tiers
+        torch.set_num_threads(1)
+        print("Loading sentence-transformers model (all-MiniLM-L6-v2)...")
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("Model loaded.")
+    return model
 
 DEFAULT_SENTENCES = [
     "The cat sat quietly on the warm windowsill.",
@@ -24,7 +33,8 @@ DEFAULT_SENTENCES = [
 
 
 def compute_similarity(sentences):
-    embeddings = model.encode(sentences, convert_to_numpy=True)
+    m = get_model()
+    embeddings = m.encode(sentences, convert_to_numpy=True)
     sim_matrix = cosine_similarity(embeddings)
 
     n = len(sentences)
@@ -41,16 +51,14 @@ def compute_similarity(sentences):
 
     pairs_sorted = sorted(pairs, key=lambda x: x["score"], reverse=True)
 
-    # Simple 2D projection for visualization: PCA via SVD (no sklearn.decomposition needed beyond numpy)
     centered = embeddings - embeddings.mean(axis=0)
     _, _, vt = np.linalg.svd(centered, full_matrices=False)
     coords_2d = centered @ vt[:2].T
 
-    # Normalize coordinates to a 0-100 range for easy frontend plotting
     coords_min = coords_2d.min(axis=0)
     coords_max = coords_2d.max(axis=0)
     coords_range = np.where((coords_max - coords_min) == 0, 1, coords_max - coords_min)
-    coords_norm = ((coords_2d - coords_min) / coords_range) * 80 + 10  # 10-90 range
+    coords_norm = ((coords_2d - coords_min) / coords_range) * 80 + 10
 
     return {
         "sentences": sentences,
