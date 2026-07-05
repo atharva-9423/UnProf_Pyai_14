@@ -18,6 +18,8 @@
 
 <br>
 
+## ⚠️Note: In live demo results will get slightly delay in first attempt, because the program first downloads the model in the background when you are using the website for first time.
+
 ## 🌌 Overview
 
 **Vector Playground** is a sleek, interactive web application that visualizes semantic sentence similarity. By converting text into high-dimensional vectors (embeddings) and projecting them down to 2D space, it allows you to literally *see* the meaning of sentences.
